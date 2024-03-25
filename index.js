@@ -72,20 +72,9 @@ client.once('ready', () => {
     console.log('Bot is ready!');
 });
 
-async function analyzeMessage(message) {
-    const result = await perspective.analyze(message.content);
-    if (result.toxicity > 0.93) {
-        // Take moderation action
-        message.delete();
-        message.channel.send(`${message.author}, your message has been removed for toxicity.`);
-    }
-}
-
 // Discord.js event listener for when a message is received
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
-
-    analyzeMessage(message)
 
     // Increment XP every 10 messages
     if (message.guild) {
@@ -100,6 +89,35 @@ client.on('messageCreate', async message => {
             message.channel.send(`${message.author.username} leveled up to level ${newLevel}!`);
         }
     }
+});
+
+client.on('messageCreate', async message => {
+    if (message.author.bot) { return; }
+    try {
+    const result = await perspective.analyze(message.content);
+    console.log(`TOXICITY [0-1]: ${result.attributeScores.TOXICITY.summaryScore.value}`)
+    if (message.member.permissions.has("ADMINISTRATOR")) { return; }
+    if (result.attributeScores.TOXICITY.summaryScore.value > 0.93) {
+        // Take moderation action
+        message.delete();
+        message.channel.send(`${message.author}, your message has been removed for toxicity.`);
+    }
+    } catch {}
+})
+
+client.on('messageUpdate', async (oldMessage, newMessage) => {
+    if (newMessage.author.bot) { return; }
+    console.log(`${oldMessage} ==> ${newMessage}`)
+    try {
+    const result = await perspective.analyze(newMessage.content);
+    console.log(`UPDATED TOXICITY [0-1]: ${result.attributeScores.TOXICITY.summaryScore.value}`)
+    if (newMessage.member.permissions.has("ADMINISTRATOR")) { return; }
+    if (result.attributeScores.TOXICITY.summaryScore.value > 0.93) {
+        // Take moderation action
+        newMessage.delete();
+        newMessage.channel.send(`${newMessage.author}, your message has been removed for toxicity.`);
+    }
+    } catch {}
 });
 
 // Discord.js event listener for when a slash command is used
