@@ -10,6 +10,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 const { QuickDB } = require("quick.db");
+const Perspective = require('perspective-api-client');
 const express = require('express');
 
 // Initialize Express.js app
@@ -26,6 +27,7 @@ if (!applicationId) {
     console.error('Application ID not found in environment variables.');
     process.exit(1); // Exit the process if application ID is missing
 }
+const perspective = new Perspective({apiKey: process.env.PERSPECTIVE_API_KEY});
 
 // Set up Discord slash commands
 const commands = [
@@ -70,9 +72,20 @@ client.once('ready', () => {
     console.log('Bot is ready!');
 });
 
+async function analyzeMessage(message) {
+    const result = await perspective.analyze(message.content);
+    if (result.toxicity > 0.93) {
+        // Take moderation action
+        message.delete();
+        message.channel.send(`${message.author}, your message has been removed for toxicity.`);
+    }
+}
+
 // Discord.js event listener for when a message is received
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
+
+    analyzeMessage(message)
 
     // Increment XP every 10 messages
     if (message.guild) {
