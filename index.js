@@ -14,6 +14,8 @@ const Perspective = require('perspective-api-client');
 const express = require('express');
 
 const minimumToxicToDelete = 0.83
+const whitelistContains = ["ur a smelly poo-poo face", "ur a smelly poo poo face", "your a smelly poo-poo face", "your a smelly poo poo face",
+"you're a smelly poo-poo face", "you're a smelly poo poo face"]
 
 // Initialize Express.js app
 const app = express();
@@ -95,6 +97,17 @@ client.on('messageCreate', async message => {
 
 client.on('messageCreate', async message => {
     if (message.author.bot) { return; }
+    let found = false;
+
+    for (let i = 0; i < whitelistContains.length; i++) {
+        if (message.content.includes(whitelistContains[i])) {
+            found = true;
+            break;
+        }
+    }
+
+    if (found) { return; }
+
     try {
     const result = await perspective.analyze(message.content);
     console.log(`TOXICITY [0-1]: ${result.attributeScores.TOXICITY.summaryScore.value}`)
@@ -108,7 +121,18 @@ client.on('messageCreate', async message => {
 })
 
 client.on('messageUpdate', async (oldMessage, newMessage) => {
-    if (newMessage.author.bot) { return; }
+    if (message.author.bot) { return; }
+    let found = false;
+
+    for (let i = 0; i < whitelistContains.length; i++) {
+        if (message.content.includes(whitelistContains[i])) {
+            found = true;
+            break;
+        }
+    }
+
+    if (found) { return; }
+
     console.log(`${oldMessage} ==> ${newMessage}`)
     try {
     const result = await perspective.analyze(newMessage.content);
