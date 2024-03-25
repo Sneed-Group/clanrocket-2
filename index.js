@@ -1,18 +1,20 @@
 require('dotenv').config(); // Load environment variables from .env file
 const { Client, Intents } = require('discord.js');
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.MESSAGE_CREATE] });
+const client = new Client({ 
+    intents: [
+        Intents.FLAGS.GUILDS,
+        Intents.FLAGS.GUILD_MESSAGES // Add intents as needed
+    ]
+});
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
-const QuickDb = require('quick.db');
+const db = require('quick.db');
 const express = require('express');
 
 // Initialize Express.js app
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Set up Quick.db
-const db = new QuickDb.Database();
 
 // Set up Discord slash commands
 const commands = [
@@ -38,12 +40,18 @@ const rest = new REST({ version: '9' }).setToken(process.env.DISCORD_BOT_TOKEN);
     try {
         console.log('Started refreshing application (/) commands.');
 
-        await rest.put(
-            Routes.applicationCommands(process.env.DISCORD_CLIENT_ID),
-            { body: commands },
-        );
+        const applicationId = client.application?.id;
+        const guildId = client.guilds.cache.first()?.id;
 
-        console.log('Successfully reloaded application (/) commands.');
+        if (applicationId && guildId) {
+            await rest.put(
+                Routes.applicationGuildCommands(applicationId, guildId),
+                { body: commands },
+            );
+            console.log('Successfully reloaded application (/) commands.');
+        } else {
+            console.error('Unable to retrieve application or guild ID.');
+        }
     } catch (error) {
         console.error(error);
     }
@@ -106,11 +114,10 @@ client.on('interactionCreate', async interaction => {
 });
 
 // Start the Express.js server for the XP API
-app.get('/xp/:guildId/:userId', (req, res) => {
-    const guildId = req.params.guildId;
+app.get('/xp/:userId', (req, res) => {
     const userId = req.params.userId;
     const xp = db.get(`xp.${userId}`) || 0;
-    res.json({ guildId, userId, xp });
+    res.json({ userId, xp });
 });
 
 app.listen(PORT, () => {
