@@ -117,7 +117,7 @@ client.on('interactionCreate', async interaction => {
         const amount = options.getInteger('amount');
         const user = options.getUser('user') || interaction.user;
         const currentXp = await db.get(`xp.${guildId}.${user.id}`) || 0;
-        const newXp = await db.set(`xp.${guildId}.${user.id}`, currentXp + amount);
+        await db.set(`xp.${guildId}.${user.id}`, currentXp + amount);
         interaction.reply(`${amount} XP added to ${user.username}.`);
     } else if (commandName === 'removexp') {
         if (!interaction.member.permissions.has('ADMINISTRATOR')) {
@@ -128,7 +128,7 @@ client.on('interactionCreate', async interaction => {
         const amount = options.getInteger('amount');
         const user = options.getUser('user') || interaction.user;
         const currentXp = db.get(`xp.${guildId}.${user.id}`) || 0;
-        const newXp = await db.set(`xp.${guildId}.${user.id}`, Math.max(0, currentXp - amount));
+        await db.set(`xp.${guildId}.${user.id}`, Math.max(0, currentXp - amount));
         interaction.reply(`${amount} XP removed from ${user.username}.`);
     }
 });
