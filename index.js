@@ -77,8 +77,8 @@ client.on('messageCreate', async message => {
     // Increment XP every 10 messages
     if (message.guild) {
         const guildId = message.guild.id;
-        const xp = db.get(`xp.${guildId}.${message.author.id}`) || 0;
-        db.set(`xp.${guildId}.${message.author.id}`, xp + 1);
+        const xp = await db.get(`xp.${guildId}.${message.author.id}`) || 0;
+        await db.set(`xp.${guildId}.${message.author.id}`, xp + 1);
 
         // Check if user leveled up
         const level = Math.floor(xp / 5) + 1;
@@ -107,7 +107,8 @@ client.on('interactionCreate', async interaction => {
         const guildId = interactionGuildId;
         const user = options.getUser('user') || interaction.user;
         const xp = await db.get(`xp.${guildId}.${user.id}`) || 0;
-        interaction.reply(`${user.username} has ${xp} XP.`);
+        console.log(xp)
+        await interaction.reply(`${user.username} has ${xp} XP.`);
     } else if (commandName === 'addxp') {
         if (!interaction.member.permissions.has('ADMINISTRATOR')) {
             return interaction.reply('You do not have permission to use this command.');
@@ -117,8 +118,8 @@ client.on('interactionCreate', async interaction => {
         const amount = options.getInteger('amount');
         const user = options.getUser('user') || interaction.user;
         const currentXp = await db.get(`xp.${guildId}.${user.id}`) || 0;
-        await db.set(`xp.${guildId}.${user.id}`, currentXp + amount);
-        interaction.reply(`${amount} XP added to ${user.username}.`);
+        await db.set(`xp.${guildId}.${user.id}`, currentXp + amount)
+        await interaction.reply(`${amount} XP added to ${user.username}.`);
     } else if (commandName === 'removexp') {
         if (!interaction.member.permissions.has('ADMINISTRATOR')) {
             return interaction.reply('You do not have permission to use this command.');
@@ -127,9 +128,9 @@ client.on('interactionCreate', async interaction => {
         const guildId = interactionGuildId;
         const amount = options.getInteger('amount');
         const user = options.getUser('user') || interaction.user;
-        const currentXp = db.get(`xp.${guildId}.${user.id}`) || 0;
+        const currentXp = await db.get(`xp.${guildId}.${user.id}`) || 0;
         await db.set(`xp.${guildId}.${user.id}`, Math.max(0, currentXp - amount));
-        interaction.reply(`${amount} XP removed from ${user.username}.`);
+        await interaction.reply(`${amount} XP removed from ${user.username}.`);
     }
 });
 
