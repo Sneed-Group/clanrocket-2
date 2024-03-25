@@ -13,6 +13,8 @@ const { QuickDB } = require("quick.db");
 const Perspective = require('perspective-api-client');
 const express = require('express');
 
+const minimumToxicToDelete = 0.83
+
 // Initialize Express.js app
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -97,7 +99,7 @@ client.on('messageCreate', async message => {
     const result = await perspective.analyze(message.content);
     console.log(`TOXICITY [0-1]: ${result.attributeScores.TOXICITY.summaryScore.value}`)
     if (message.member.permissions.has("ADMINISTRATOR")) { return; }
-    if (result.attributeScores.TOXICITY.summaryScore.value > 0.93) {
+    if (result.attributeScores.TOXICITY.summaryScore.value > minimumToxicToDelete) {
         // Take moderation action
         message.delete();
         message.channel.send(`${message.author}, your message has been removed for toxicity.`);
@@ -112,7 +114,7 @@ client.on('messageUpdate', async (oldMessage, newMessage) => {
     const result = await perspective.analyze(newMessage.content);
     console.log(`UPDATED TOXICITY [0-1]: ${result.attributeScores.TOXICITY.summaryScore.value}`)
     if (newMessage.member.permissions.has("ADMINISTRATOR")) { return; }
-    if (result.attributeScores.TOXICITY.summaryScore.value > 0.93) {
+    if (result.attributeScores.TOXICITY.summaryScore.value > minimumToxicToDelete) {
         // Take moderation action
         newMessage.delete();
         newMessage.channel.send(`${newMessage.author}, your message has been removed for toxicity.`);
