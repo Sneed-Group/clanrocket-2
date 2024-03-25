@@ -106,7 +106,7 @@ client.on('interactionCreate', async interaction => {
     if (commandName === 'xp') {
         const guildId = interactionGuildId;
         const user = options.getUser('user') || interaction.user;
-        const xp = db.get(`xp.${guildId}.${user.id}`) || 0;
+        const xp = await db.get(`xp.${guildId}.${user.id}`) || 0;
         interaction.reply(`${user.username} has ${xp} XP.`);
     } else if (commandName === 'addxp') {
         if (!interaction.member.permissions.has('ADMINISTRATOR')) {
@@ -116,8 +116,8 @@ client.on('interactionCreate', async interaction => {
         const guildId = interactionGuildId;
         const amount = options.getInteger('amount');
         const user = options.getUser('user') || interaction.user;
-        const currentXp = db.get(`xp.${guildId}.${user.id}`) || 0;
-        db.set(`xp.${guildId}.${user.id}`, currentXp + amount);
+        const currentXp = await db.get(`xp.${guildId}.${user.id}`) || 0;
+        const newXp = await db.set(`xp.${guildId}.${user.id}`, currentXp + amount);
         interaction.reply(`${amount} XP added to ${user.username}.`);
     } else if (commandName === 'removexp') {
         if (!interaction.member.permissions.has('ADMINISTRATOR')) {
@@ -128,7 +128,7 @@ client.on('interactionCreate', async interaction => {
         const amount = options.getInteger('amount');
         const user = options.getUser('user') || interaction.user;
         const currentXp = db.get(`xp.${guildId}.${user.id}`) || 0;
-        db.set(`xp.${guildId}.${user.id}`, Math.max(0, currentXp - amount));
+        const newXp = await db.set(`xp.${guildId}.${user.id}`, Math.max(0, currentXp - amount));
         interaction.reply(`${amount} XP removed from ${user.username}.`);
     }
 });
