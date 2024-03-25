@@ -9,12 +9,15 @@ const client = new Client({
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
-const db = require('quick.db');
+const { QuickDB } = require("quick.db");
 const express = require('express');
 
 // Initialize Express.js app
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize the DB
+const db = new QuickDB();
 
 // Retrieve Application ID from environment variable
 const applicationId = process.env.DISCORD_APPLICATION_ID;
