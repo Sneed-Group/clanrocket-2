@@ -16,6 +16,14 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Retrieve Application ID from environment variable
+const applicationId = process.env.DISCORD_APPLICATION_ID;
+
+if (!applicationId) {
+    console.error('Application ID not found in environment variables.');
+    process.exit(1); // Exit the process if application ID is missing
+}
+
 // Set up Discord slash commands
 const commands = [
     new SlashCommandBuilder()
@@ -40,17 +48,14 @@ const rest = new REST({ version: '9' }).setToken(process.env.DISCORD_BOT_TOKEN);
     try {
         console.log('Started refreshing application (/) commands.');
 
-        const applicationId = client.application?.id;
-        const guildId = client.guilds.cache.first()?.id;
-
-        if (applicationId && guildId) {
+        if (applicationId) {
             await rest.put(
-                Routes.applicationGuildCommands(applicationId, guildId),
+                Routes.applicationCommands(applicationId),
                 { body: commands },
             );
             console.log('Successfully reloaded application (/) commands.');
         } else {
-            console.error('Unable to retrieve application or guild ID.');
+            console.error('Application ID not found.');
         }
     } catch (error) {
         console.error(error);
@@ -68,8 +73,9 @@ client.on('messageCreate', async message => {
 
     // Increment XP every 10 messages
     if (message.guild) {
-        const xp = db.get(`xp.${message.author.id}`) || 0;
-        db.set(`xp.${message.author.id}`, xp + 1);
+        const guildId = message.guild.id;
+        const xp = db.get(`xp.${guildId}.${message.author.id}`) || 0;
+        db.set(`xp.${guildId}.${message.author.id}`, xp + 1);
 
         // Check if user leveled up
         const level = Math.floor(xp / 5) + 1;
@@ -84,40 +90,51 @@ client.on('messageCreate', async message => {
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
-    const { commandName, options } = interaction;
+    const { commandName, options, guildId } = interaction;
+
+    // Retrieve guild ID from interaction if available
+    const interactionGuildId = guildId || interaction.guildId;
+
+    if (!interactionGuildId) {
+        console.error('Unable to retrieve guild ID.');
+        return;
+    }
 
     if (commandName === 'xp') {
+        const guildId = interactionGuildId;
         const user = options.getUser('user') || interaction.user;
-        const xp = db.get(`xp.${user.id}`) || 0;
+        const xp = db.get(`xp.${guildId}.${user.id}`) || 0;
         interaction.reply(`${user.username} has ${xp} XP.`);
     } else if (commandName === 'addxp') {
         if (!interaction.member.permissions.has('ADMINISTRATOR')) {
             return interaction.reply('You do not have permission to use this command.');
         }
 
+        const guildId = interactionGuildId;
         const amount = options.getInteger('amount');
         const user = options.getUser('user') || interaction.user;
-        const currentXp = db.get(`xp.${user.id}`) || 0;
-        db.set(`xp.${user.id}`, currentXp + amount);
+        const currentXp = db.get(`xp.${guildId}.${user.id}`) || 0;
+        db.set(`xp.${guildId}.${user.id}`, currentXp + amount);
         interaction.reply(`${amount} XP added to ${user.username}.`);
     } else if (commandName === 'removexp') {
         if (!interaction.member.permissions.has('ADMINISTRATOR')) {
             return interaction.reply('You do not have permission to use this command.');
         }
 
+        const guildId = interactionGuildId;
         const amount = options.getInteger('amount');
         const user = options.getUser('user') || interaction.user;
-        const currentXp = db.get(`xp.${user.id}`) || 0;
-        db.set(`xp.${user.id}`, Math.max(0, currentXp - amount));
+        const currentXp = db.get(`xp.${guildId}.${user.id}`) || 0;
+        db.set(`xp.${guildId}.${user.id}`, Math.max(0, currentXp - amount));
         interaction.reply(`${amount} XP removed from ${user.username}.`);
     }
 });
 
 // Start the Express.js server for the XP API
-app.get('/xp/:userId', (req, res) => {
-    const userId = req.params.userId;
-    const xp = db.get(`xp.${userId}`) || 0;
-    res.json({ userId, xp });
+app.get('/xp/:guildId/:userId', (req, res) => {
+    const { guildId, userId } = req.params;
+    const xp = db.get(`xp.${guildId}.${userId}`) || 0;
+    res.json({ guildId, userId, xp });
 });
 
 app.listen(PORT, () => {
