@@ -192,10 +192,10 @@ client.on('interactionCreate', async interaction => {
 });
 
 // Start the Express.js server for the XP API
-app.get('/xp/:guildId/:userId', (req, res) => {
-    const { guildId, userId } = req.params;
-    const xp = db.get(`xp.${guildId}.${userId}`) || 0;
-    res.json({ guildId, userId, xp });
+app.get('/xp/:guildId/:userId', async (req, res) => {
+    const { guildId, userId } = await req.params;
+    const xp = await db.get(`xp.${guildId}.${userId}`) || 0;
+    await res.json({ guildId, userId, xp });
 });
 
 app.listen(PORT, () => {
